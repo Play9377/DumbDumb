@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉字文本加密解密工具</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            font-size: 16px;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px 0;
+            flex-grow: 1;
+            max-width: 48%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.copy {
+            background-color: #2196F3;
+        }
+        button.copy:hover {
+            background-color: #0b7dda;
+        }
+        .result-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        @media (max-width: 600px) {
+            button {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>汉字文本加密解密工具</h1>
+        
+        <h3>输入文本：</h3>
+        <textarea id="inputText" placeholder="在此输入要加密的文本或要解密的阿巴代码..."></textarea>
+        
+        <div class="buttons">
+            <button id="encryptBtn">加密 → 阿巴</button>
+            <button id="decryptBtn">解密 ← 阿巴</button>
+        </div>
+        
+        <h3>结果：</h3>
+        <textarea id="outputText" readonly placeholder="加密或解密结果将显示在这里..."></textarea>
+        
+        <div class="buttons">
+            <button id="copyOutput" class="copy">复制结果</button>
+            <button id="clearBtn">清空所有</button>
+        </div>
+        
+        <div class="result-info">
+            <p id="charCount">字符数: 0</p>
+            <p id="binaryLength">二进制长度: 0</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputText = document.getElementById('inputText');
+            const outputText = document.getElementById('outputText');
+            const encryptBtn = document.getElementById('encryptBtn');
+            const decryptBtn = document.getElementById('decryptBtn');
+            const copyOutput = document.getElementById('copyOutput');
+            const clearBtn = document.getElementById('clearBtn');
+            const charCount = document.getElementById('charCount');
+            const binaryLength = document.getElementById('binaryLength');
+            
+            // 加密函数：将文本转换为阿巴编码
+            function encrypt(text) {
+                let binaryStr = '';
+                for (let i = 0; i < text.length; i++) {
+                    // 获取字符的Unicode编码
+                    const charCode = text.charCodeAt(i);
+                    // 将Unicode编码转换为16位二进制字符串，并补齐16位
+                    const binaryChar = charCode.toString(2).padStart(16, '0');
+                    binaryStr += binaryChar;
+                }
+                // 将二进制字符串中的0和1替换为阿和巴
+                const abaStr = binaryStr.replace(/0/g, '阿').replace(/1/g, '巴');
+                return abaStr;
+            }
+            
+            // 解密函数：将阿巴编码转换回原始文本
+            function decrypt(abaStr) {
+                // 验证输入是否只包含阿和巴
+                if (!/^[阿巴]*$/.test(abaStr)) {
+                    return '错误：解密内容只能包含"阿"和"巴"';
+                }
+                
+                // 将阿和巴转换回二进制
+                const binaryStr = abaStr.replace(/阿/g, '0').replace(/巴/g, '1');
+                
+                // 检查二进制长度是否为16的倍数
+                if (binaryStr.length % 16 !== 0) {
+                    return '错误：阿巴代码长度不正确，无法解码';
+                }
+                
+                let originalText = '';
+                // 每16位二进制转换为一个字符
+                for (let i = 0; i < binaryStr.length; i += 16) {
+                    const binaryChar = binaryStr.substr(i, 16);
+                    const charCode = parseInt(binaryChar, 2);
+                    // 检查字符编码是否有效
+                    if (isNaN(charCode) || charCode < 0 || charCode > 65535) {
+                        return '错误：解码过程中发现无效字符编码';
+                    }
+                    originalText += String.fromCharCode(charCode);
+                }
+                return originalText;
+            }
+            
+            // 更新统计信息
+            function updateStats(text, isEncrypted) {
+                if (isEncrypted) {
+                    charCount.textContent = `阿巴字符数: ${text.length}`;
+                    binaryLength.textContent = `二进制长度: ${text.length}`;
+                } else {
+                    charCount.textContent = `字符数: ${text.length}`;
+                    // 计算二进制长度（每个字符16位）
+                    binaryLength.textContent = `二进制长度: ${text.length * 16}`;
+                }
+            }
+            
+            // 加密按钮点击事件
+            encryptBtn.addEventListener('click', function() {
+                const text = inputText.value.trim();
+                if (!text) {
+                    outputText.value = '请输入要加密的文本';
+                    return;
+                }
+                const encrypted = encrypt(text);
+                outputText.value = encrypted;
+                updateStats(encrypted, true);
+            });
+            
+            // 解密按钮点击事件
+            decryptBtn.addEventListener('click', function() {
+                const text = inputText.value.trim();
+                if (!text) {
+                    outputText.value = '请输入要解密的阿巴代码';
+                    return;
+                }
+                const decrypted = decrypt(text);
+                outputText.value = decrypted;
+                if (!decrypted.startsWith('错误：')) {
+                    updateStats(decrypted, false);
+                }
+            });
+            
+            // 复制结果按钮点击事件
+            copyOutput.addEventListener('click', function() {
+                if (!outputText.value) {
+                    alert('没有可复制的内容');
+                    return;
+                }
+                outputText.select();
+                document.execCommand('copy');
+                alert('已复制到剪贴板');
+            });
+            
+            // 清空按钮点击事件
+            clearBtn.addEventListener('click', function() {
+                inputText.value = '';
+                outputText.value = '';
+                charCount.textContent = '字符数: 0';
+                binaryLength.textContent = '二进制长度: 0';
+            });
+            
+            // 输入框内容变化时更新统计信息
+            inputText.addEventListener('input', function() {
+                const text = inputText.value;
+                updateStats(text, false);
+            });
+        });
+    </script>
+</body>
+</html>
